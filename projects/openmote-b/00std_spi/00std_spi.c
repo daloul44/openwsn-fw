@@ -56,13 +56,13 @@ void spi_init() {
     // clear variables
     memset(&spi_vars,0,sizeof(spi_vars_t));
 
-    // set the clk miso and cs pins as output
+    // set the clk miso and cs pins as Software-controlled outputs (configures GPIO_AFSEL and GPIO_DIR )
     GPIOPinTypeGPIOOutput(SPI_GPIO_SSI_BASE, SPI_PIN_SSI_CLK);
     GPIOPinTypeGPIOOutput(SPI_GPIO_SSI_BASE, SPI_PIN_SSI_TX);
     GPIOPinTypeGPIOOutput(SPI_GPIO_SSI_BASE, SPI_PIN_SSI_FSS);
 
-    //set cs to high
-    GPIOPinWrite(SPI_GPIO_SSI_BASE, SPI_PIN_SSI_FSS, SPI_PIN_SSI_FSS);
+    //set cs to high (writes into GPIO_DATA)
+    GPIOPinWrite(SPI_GPIO_SSI_BASE, SPI_PIN_SSI_FSS, 1);
     //set pins to low
     GPIOPinWrite(SPI_GPIO_SSI_BASE, SPI_PIN_SSI_TX, 0);
     GPIOPinWrite(SPI_GPIO_SSI_BASE, SPI_PIN_SSI_CLK, 0);
@@ -71,20 +71,25 @@ void spi_init() {
     SysCtrlPeripheralSleepEnable(SYS_CTRL_PERIPH_SSI1);
     SysCtrlPeripheralDeepSleepDisable(SYS_CTRL_PERIPH_SSI1);
 
-    SSIDisable(SSI1_BASE);
-    SSIClockSourceSet(SSI1_BASE, SSI_CLOCK_PIOSC);
+    SSIDisable(SSI1_BASE); // writes into SSI_CR1
+    SSIClockSourceSet(SSI1_BASE, SSI_CLOCK_PIOSC); // writes into SSI_CC
 
+    // configures IOC_Pxx_SEL register
     IOCPinConfigPeriphOutput(SPI_GPIO_SSI_BASE, SPI_PIN_SSI_CLK, IOC_MUX_OUT_SEL_SSI1_CLKOUT);
+    // configures IOC_Pxx_SEL register
     IOCPinConfigPeriphOutput(SPI_GPIO_SSI_BASE, SPI_PIN_SSI_TX, IOC_MUX_OUT_SEL_SSI1_TXD);
+    // configures hardware perihperal input selection (i.e. IOC_SSIRXD_SSI1)
     IOCPinConfigPeriphInput(SPI_GPIO_SSI_BASE, SPI_PIN_SSI_RX, IOC_SSIRXD_SSI1);
 
+    // set the pins as Hardware-controlled outputs (AFSEL register)
     GPIOPinTypeSSI(SPI_GPIO_SSI_BASE, SPI_PIN_SSI_CLK );
     GPIOPinTypeSSI(SPI_GPIO_SSI_BASE, SPI_PIN_SSI_RX );
     GPIOPinTypeSSI(SPI_GPIO_SSI_BASE, SPI_PIN_SSI_TX );
 
+    // sets SSI_CR0, SSI_CR1, SSI_CPSR
     SSIConfigSetExpClk(SSI1_BASE, SysCtrlIOClockGet(), SSI_FRF_MOTO_MODE_0, SSI_MODE_MASTER, /*SysCtrlIOClockGet()/2*/16000000, 8 /*bits*/);
 
-    // Enable the SSI1 module.
+    // Enable the SSI1 module. (writes into CR1)
     SSIEnable(SSI1_BASE);
 }
 
@@ -117,7 +122,7 @@ void    spi_txrx(uint8_t*     bufTx,
     // SPI is now busy
     spi_vars.busy             =  1;
 
-    // lower CS signal to have slave listening
+    // lower CS signal to have slave listening. FSS is managed through software, not hardware.
     if (spi_vars.isFirst==SPI_FIRST) {
        GPIOPinWrite(SPI_GPIO_SSI_BASE, SPI_PIN_SSI_FSS, 0);
     }
