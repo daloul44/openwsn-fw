@@ -62,7 +62,7 @@ void spi_init() {
     GPIOPinTypeGPIOOutput(SPI_GPIO_SSI_BASE, SPI_PIN_SSI_FSS);
 
     //set cs to high (writes into GPIO_DATA)
-    GPIOPinWrite(SPI_GPIO_SSI_BASE, SPI_PIN_SSI_FSS, 1);
+    GPIOPinWrite(SPI_GPIO_SSI_BASE, SPI_PIN_SSI_FSS, SPI_PIN_SSI_FSS);
     //set pins to low
     GPIOPinWrite(SPI_GPIO_SSI_BASE, SPI_PIN_SSI_TX, 0);
     GPIOPinWrite(SPI_GPIO_SSI_BASE, SPI_PIN_SSI_CLK, 0);
